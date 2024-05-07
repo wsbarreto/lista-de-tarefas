@@ -2,20 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Icone from '../assets/icon.webp';
 import Table from 'react-bootstrap/Table';
 
+export const dadosList = [];
+let search = false;
+
 const useSortableData = (items, config = null) => {
     const [sortConfig, setSortConfig] = React.useState(config);
-    // var da = [];
-
-    // localStorage.getItem('resultSearch')
-    // ?
-    //     da = JSON.stringify(localStorage.getItem('resultSearch'))
-    // :
-    //     da = items;
-    
-    console.log('ola 1 items: ', items);
     const sortedItems = React.useMemo(() => {
-        let sortableItems = items;
-        
+        let sortableItems = [...items];
+
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
                 if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -37,13 +31,12 @@ const useSortableData = (items, config = null) => {
         }
         setSortConfig({ key, direction });
     };
-    
+
     return { items: sortedItems, requestSort, sortConfig };
 };
 
 function handleInput(e, dados, index) {
-    console.log('dados busca: ', dados);
-    dados = searchTable(e.target.value, dados, index);
+    searchTable(e.target.value, dados, index);
 };
 
 function searchTable(value, dados, index) {
@@ -51,20 +44,28 @@ function searchTable(value, dados, index) {
         return dados; // ESTE RETORNO IRA RESTAURAR OS DADOS ORIGINAIS DO DATA
     }
 
+    search = true;
     const chave = Object.keys(dados[0])[index];
 
     // Filtrar os dados com base no termo de busca
-    const resultados = dados.filter(item =>
+    const resultado = dados.filter(item =>
         String(item[chave].toLowerCase()).includes(value.toLowerCase()));
 
-    if (resultados) {
-        localStorage.setItem('resultSearch', JSON.stringify(resultados));
-        return resultados;
+    if (resultado) {
+        localStorage.setItem('resultSearch', Object.values(resultado));
+        dadosList.splice(0, dadosList.length);
+        Object.values(resultado).forEach(element => {
+            dadosList.push(element);
+        });
+
+        console.log('dadosList2: ', dadosList);
     }
 }
 
-const ProductTable = (props, title) => {
-    const { items, requestSort, sortConfig } = useSortableData(props);
+const ProductTable = (props, title) => {  
+    // const [dataList, setDataList] = useState(props.products); 
+    // setDataList(props.products);
+    const { items, requestSort, sortConfig } = useSortableData(props.products); 
     const getClassNamesFor = (name) => {
         if (!sortConfig) {
             return;
@@ -74,24 +75,24 @@ const ProductTable = (props, title) => {
 
     const https = 'https';
     title = localStorage.getItem('titulo-tabela');
-    console.log('title 4', title);
+    
     return (
         <Table responsive striped bordered hover variant="dark">
-            <caption></caption>
+            <caption>{props.title}</caption>
             <thead>
                 <tr>
                 {/* Renderizar cabeçalhos das colunas */}
                     {Object.keys(items[0]).map((chave, index) => (
-                    <th 
-                        key={chave} 
-                        onClick={() => requestSort(chave)}
-                        className={getClassNamesFor(chave)}>{chave} 
-                        <input
-                            className="form-input"
-                            onChange={(e) => handleInput(e, items, index)}
-                            id="input-table"
-                            placeholder="Ache um busca"/>
-                    </th>
+                        <th 
+                            key={chave} 
+                            onClick={() => requestSort(chave)}
+                            className={getClassNamesFor(chave)}>{chave} 
+                            <input
+                                className="form-input"
+                                onChange={(e) => handleInput(e, items, index)}
+                                id="input-table"
+                                placeholder="Ache um busca"/>
+                        </th>
                     ))}
                 </tr>
             </thead>
@@ -119,6 +120,7 @@ export default function TabelaDinamica({ titulo, lista }) {
     useEffect(() => {
         localStorage.setItem('lista', JSON.stringify(lista));
     }, [lista]);
+    
     localStorage.setItem('titulo-tabela', titulo);
     return(
         <div className="App">
