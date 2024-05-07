@@ -1,83 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import Icone from '../assets/icon.webp';
 import Table from 'react-bootstrap/Table';
 
 export const dadosList = [];
 
-const useSortableData = (items, config = null) => {
+export default function TabelaDinamica({ titulo, lista }) {
+    const [data, setData] = useState(lista);
+    const [dataOriginal] = useState(lista);
+    const [keyOrder, setColunaOrdenacao] = useState(null);
+    const [sortConfig, setSortConfig] = useState(null);
 
-    let storageResult = localStorage.getItem('resultSearch');
-    let storageLista = localStorage.getItem('lista');
+    useEffect(() => {
+        localStorage.setItem('lista', JSON.stringify(lista));
+    }, [lista]);
 
-    const [sortConfig, setSortConfig] = React.useState(config);
+    const handleOrdenacao = (e, key) => {
 
-    const sortedItems = React.useMemo(() => {
-        let sortableItems = [...items];
-
-        if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
-                    return sortConfig.direction === 'ascending' ? -1 : 1;
-                }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
-                    return sortConfig.direction === 'ascending' ? 1 : -1;
-                }
-                return 0;
-            });
+        if (e.target.tagName === 'INPUT') {
+            return;
         }
-        return sortableItems;
-    }, [items, sortConfig]);
-    
-    const requestSort = (key) => {
         let direction = 'ascending';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-            direction = 'descending';
+
+        if (sortConfig !== null){
+            if (sortConfig && sortConfig.key === keyOrder && sortConfig.direction === 'ascending') {
+                direction = 'descending';
+            }
         }
+        
+        setColunaOrdenacao(key);
         setSortConfig({ key, direction });
     };
 
-    return { items: sortedItems, requestSort, sortConfig };
-};
-
-const handleFocus = () => {
-    // setFocado(true);
-};
-
-const handleBlur = () => {
-    // setFocado(false);
-};
-
-function handleInput(e, dados, index) {
-    return searchTable(e.target.value, dados, index);
-};
-
-function searchTable(value, dados, index) {
-    if (value.length === 0) {
-        return dados;
-    }
-
-    const chave = Object.keys(dados[0])[index];
-
-    // Filtrar os dados com base no termo de busca
-    const resultado = dados.filter(item =>
-        String(item[chave].toLowerCase()).includes(value.toLowerCase()));
-
-    if (resultado) {
-        dadosList.splice(0, dadosList.length);
-        Object.values(resultado).forEach(element => {
-            dadosList.push(element);
-        });
-        
-        // localStorage.setItem('resultSearch', dadosList);
-        // console.log('dadosList2: ', dadosList);
-        return resultado;
-    }
-    return dados;
-}
-
-const ProductTable = (props, title) => {  
-    const { items, requestSort, sortConfig } = useSortableData(props.products); 
-    const [lixta, setLixta] = useState(props.products);
+    // Função para classificar os dados da tabela com base na coluna e na ordem de classificação
+    const dadosOrdenados = data.sort((a, b) => {
+        if (sortConfig !== null) {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'ascending' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'ascending' ? 1 : -1;
+            }
+            return 0;
+        }
+        return 0;
+    });
 
     const getClassNamesFor = (name) => {
         if (!sortConfig) {
@@ -85,69 +50,111 @@ const ProductTable = (props, title) => {
         }
         return sortConfig.key === name ? sortConfig.direction : undefined;
     };
+    
+    const handleFocus = () => {
+        // setFocado(true);
+    };
+    
+    const handleBlur = () => {
+        // setFocado(false);
+    };
+    
+    function handleInput(e, index) {
+        const result = searchTable(e.target.value, index);
+        setData(result);
+        return result;
+    };
+    
+    function searchTable(value, index) {
+        if (value.length === 0) {
+            return dataOriginal;
+        }
+    
+        const dadosFiltrados = dataOriginal.slice();
+        const chave = Object.keys(dadosFiltrados[0])[index];
+        console.log('index: ', index);
+        console.log('chave: ', chave);
+        console.log('value: ', value);        
 
-    const https = 'https';
+        const resultado = dadosFiltrados.filter(item => 
+            String(item[chave]).toLowerCase().includes(value.toLowerCase()));
+
+        // const resultado = dadosFiltrados.filter(item => {
+        //     if (isNaN(value)) {
+        //         String(item[chave]).includes(value);
+        //     }
+        //     else{
+        //         String(item[chave]).toLowerCase().includes(value.toLowerCase())
+        //     }
+        // });
+        
+        if (resultado.length <= 0) {
+            const keys = Object.keys(dadosFiltrados[0]);
+            
+            let json = '{';
+            keys.forEach(element => {
+                json += "\"" + element + "\": " + "\"\", ";
+            });
+            json = json.substring(0, json.length - 2) + '}';
+
+            resultado.push(JSON.parse(json));
+            return resultado;
+        }
+ 
+        if (resultado.length > 0) {
+            dadosList.splice(0, dadosList.length);
+            Object.values(resultado).forEach(element => {
+                dadosList.push(element);
+            });
+            return resultado;
+        }
+        return dados;
+    };
     
     return (
         <Table responsive striped bordered hover variant="dark">
-            <caption>{props.title}</caption>
+            <caption>{titulo}</caption>
             <thead>
                 <tr>
                 {/* Renderizar cabeçalhos das colunas */}
-                    {Object.keys(items[0]).map((chave, index) => (
+                    {Object.keys(data[0]).map((chave, index) => (
                         <th 
                             key={chave} 
-                            onClick={() => requestSort(chave)}
-                            className={getClassNamesFor(chave)}>{chave} 
+                            onClick={(e) => handleOrdenacao(e, chave)}
+                            className={getClassNamesFor(chave)}
+                            >{chave} <br />
                             <input
                                 key={index}
                                 className="form-input"
-                                onChange={(e) => {
-                                    const novoValor = handleInput(e, items, index);
-                                    console.log('novoValor: ', novoValor);
-                                    items.fill(dadosList);
-                                    console.log('lixta: ', lixta);
-                                    console.log('dadosList: ', dadosList);
-                                  }}
+                                onChange={(e) => handleInput(e, index) }
                                 id="input-table"
-                                placeholder="Ache um busca"/>
+                                placeholder="busca"/>
                         </th>
                     ))}
                 </tr>
             </thead>
             <tbody>
                 {/* Renderizar linhas da tabela com os dados */}
-                {items.map((item, index) => (
-                    <tr key={index} >
-                        {Object.values(item).map((valor, index) => (
-                            String(valor).includes(https)
-                            ?
-                                <td key={index}><img src={valor} alt="" width={30} /></td>
-                            :
-                                <td key={index}>{valor}</td>
-                        ))}
-                        <td><button onClick={() => { deleta(index, lista) }} className="del">deletar</button></td>
-                    </tr>
+                {
+                    data.length <= 0
+                    ?
+                        <tr><p>nenhum resultado da busca</p></tr>
+                    :
+                        data.map((item, index) => (
+                            <tr key={index} >
+                                {Object.values(item).map((valor, index) => (
+                                    String(valor).includes('https')
+                                    ?
+                                        <td key={index}><img src={valor} alt="" width={30} /></td>
+                                    :
+                                        <td key={index}>{valor}</td>
+                                ))}
+                                <td><button onClick={() => { deleta(index, data) }} className="del">deletar</button></td>
+                            </tr>
                 ))}
             </tbody>
         </Table>
     );
-};
-
-export default function TabelaDinamica({ titulo, lista }) {
-    useEffect(() => {
-        localStorage.setItem('lista', JSON.stringify(lista));
-    }, [lista]);
-    
-    console.log('passou aqui');
-    return(
-        <div className="App">
-            <ProductTable
-                products={lista}
-                title={titulo}
-            />
-            </div>
-    )
 };
 
 
