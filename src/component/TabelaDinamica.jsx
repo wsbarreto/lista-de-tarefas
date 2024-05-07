@@ -3,10 +3,14 @@ import Icone from '../assets/icon.webp';
 import Table from 'react-bootstrap/Table';
 
 export const dadosList = [];
-let search = false;
 
 const useSortableData = (items, config = null) => {
+
+    let storageResult = localStorage.getItem('resultSearch');
+    let storageLista = localStorage.getItem('lista');
+
     const [sortConfig, setSortConfig] = React.useState(config);
+
     const sortedItems = React.useMemo(() => {
         let sortableItems = [...items];
 
@@ -35,16 +39,23 @@ const useSortableData = (items, config = null) => {
     return { items: sortedItems, requestSort, sortConfig };
 };
 
+const handleFocus = () => {
+    // setFocado(true);
+};
+
+const handleBlur = () => {
+    // setFocado(false);
+};
+
 function handleInput(e, dados, index) {
-    searchTable(e.target.value, dados, index);
+    return searchTable(e.target.value, dados, index);
 };
 
 function searchTable(value, dados, index) {
     if (value.length === 0) {
-        return dados; // ESTE RETORNO IRA RESTAURAR OS DADOS ORIGINAIS DO DATA
+        return dados;
     }
 
-    search = true;
     const chave = Object.keys(dados[0])[index];
 
     // Filtrar os dados com base no termo de busca
@@ -52,20 +63,22 @@ function searchTable(value, dados, index) {
         String(item[chave].toLowerCase()).includes(value.toLowerCase()));
 
     if (resultado) {
-        localStorage.setItem('resultSearch', Object.values(resultado));
         dadosList.splice(0, dadosList.length);
         Object.values(resultado).forEach(element => {
             dadosList.push(element);
         });
-
-        console.log('dadosList2: ', dadosList);
+        
+        // localStorage.setItem('resultSearch', dadosList);
+        // console.log('dadosList2: ', dadosList);
+        return resultado;
     }
+    return dados;
 }
 
 const ProductTable = (props, title) => {  
-    // const [dataList, setDataList] = useState(props.products); 
-    // setDataList(props.products);
     const { items, requestSort, sortConfig } = useSortableData(props.products); 
+    const [lixta, setLixta] = useState(props.products);
+
     const getClassNamesFor = (name) => {
         if (!sortConfig) {
             return;
@@ -74,7 +87,6 @@ const ProductTable = (props, title) => {
     };
 
     const https = 'https';
-    title = localStorage.getItem('titulo-tabela');
     
     return (
         <Table responsive striped bordered hover variant="dark">
@@ -88,8 +100,15 @@ const ProductTable = (props, title) => {
                             onClick={() => requestSort(chave)}
                             className={getClassNamesFor(chave)}>{chave} 
                             <input
+                                key={index}
                                 className="form-input"
-                                onChange={(e) => handleInput(e, items, index)}
+                                onChange={(e) => {
+                                    const novoValor = handleInput(e, items, index);
+                                    console.log('novoValor: ', novoValor);
+                                    items.fill(dadosList);
+                                    console.log('lixta: ', lixta);
+                                    console.log('dadosList: ', dadosList);
+                                  }}
                                 id="input-table"
                                 placeholder="Ache um busca"/>
                         </th>
@@ -107,7 +126,6 @@ const ProductTable = (props, title) => {
                             :
                                 <td key={index}>{valor}</td>
                         ))}
-                        {/* <span onClick={() => { clicou(index) }}>{item.text}</span> */}
                         <td><button onClick={() => { deleta(index, lista) }} className="del">deletar</button></td>
                     </tr>
                 ))}
@@ -121,7 +139,7 @@ export default function TabelaDinamica({ titulo, lista }) {
         localStorage.setItem('lista', JSON.stringify(lista));
     }, [lista]);
     
-    localStorage.setItem('titulo-tabela', titulo);
+    console.log('passou aqui');
     return(
         <div className="App">
             <ProductTable
@@ -131,7 +149,6 @@ export default function TabelaDinamica({ titulo, lista }) {
             </div>
     )
 };
-
 
 
 
